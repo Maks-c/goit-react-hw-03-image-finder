@@ -27,7 +27,7 @@ class App extends Component {
     componentDidUpdate(prevProps, prevState){
         const prevName = prevState.searchObject
         const nextName = this.state.searchObject
-        if(prevName !== nextName) {
+        if(prevName !== nextName || prevState.currentPage !== this.state.currentPage) {
             this.fetchQuery()
         }
     }
@@ -46,16 +46,26 @@ class App extends Component {
                 return Promise.reject(new Error('Упс что-то пошло не так'))
             })
             .then(({hits}) => {
-                if(hits.length === 0) {
-
+                if(!hits.length) {
                     return Promise.reject(new Error("Проверьте ввод запроса"))
                 }
+
+                const images=hits.map(({webformatURL,id,tags,largeImageURL})=>({
+                    webformatURL,id,tags,largeImageURL
+                }))
+
+                // console.log(images)
                 this.setState((prevState) => ({
-                    hits: [...prevState.hits, ...hits], currentPage: prevState.currentPage + 1
+                    hits: [...prevState.hits, ...images]
                 }))
             })
             .catch(error => this.setState({error}))
             .finally(() => this.setState({isLoading: false}))
+    }
+
+
+    onLoadMoreButton=()=>{
+        this.setState(prevState =>({currentPage:prevState.currentPage+1}))
     }
 
 
@@ -91,10 +101,10 @@ class App extends Component {
 
             <AppWrapper>
                 <SearchBar onSubmit={this.handleFormSubmit}/>
-                {isLoading && <Loader/>}
                 {error && <h1>{error.message}</h1>}
-                <ImageGallery showQuery={hits} onClick={this.onModal}/>
-                {renderButtonLoadMore && <ButtonLoadMore onClick={this.fetchQuery}/>}
+                {hits.length >0 && <ImageGallery showQuery={hits} onClick={this.onModal}/>}
+                {isLoading && <Loader/>}
+                {renderButtonLoadMore && <ButtonLoadMore onClick={this.onLoadMoreButton}/>}
                 {showModal && <Modal onClose={this.toggleModal}>
                     <img src={largeImageURL} alt={tags}/>
                 </Modal>}
